@@ -1,7 +1,7 @@
 module "bastion-sg" {
   source      = "../../modules/security-group-base"
   name        = "${var.name}-bastion"
-  vpc_id      = "${module.vpc.vpc_id}"
+  vpc_id      = module.vpc.vpc_id
   description = "Security group for the basion hosts in ${var.name}"
 }
 
@@ -9,17 +9,17 @@ module "bastion-public-ssh-rule" {
   source            = "../../modules/ssh-sg"
   cidr_blocks       = ["0.0.0.0/0"]
   description       = "Allow public ssh to bastion host in ${var.name}"
-  security_group_id = "${module.bastion-sg.id}"
+  security_group_id = module.bastion-sg.id
 }
 
 module "bastion-open-egress-rule" {
   source            = "../../modules/open-egress-sg"
-  security_group_id = "${module.bastion-sg.id}"
+  security_group_id = module.bastion-sg.id
 }
 
 resource "aws_instance" "bastion" {
-  ami               = "${data.aws_ami.ubuntu-xenial.id}"
-  key_name          = "${aws_key_pair.main.key_name}"
+  ami               = data.aws_ami.ubuntu-xenial.id
+  key_name          = aws_key_pair.main.key_name
   instance_type     = "t2.nano"
   availability_zone = "${var.region}a"
 
@@ -30,17 +30,28 @@ resource "aws_instance" "bastion" {
 
   associate_public_ip_address = "true"
 
+  # TF-UPGRADE-TODO: In Terraform v0.10 and earlier, it was sometimes necessary to
+  # force an interpolation expression to be interpreted as a list by wrapping it
+  # in an extra set of list brackets. That form was supported for compatibilty in
+  # v0.11, but is no longer supported in Terraform v0.12.
+  #
+  # If the expression in the following list itself returns a list, remove the
+  # brackets to avoid interpretation as a list of lists. If the expression
+  # returns a single list item then leave it as-is and remove this TODO comment.
   vpc_security_group_ids = [
-    "${module.bastion-sg.id}",
+    module.bastion-sg.id,
   ]
 
-  lifecycle = {
-    ignore_changes = ["ami", "user_data"]
+  lifecycle {
+    ignore_changes = [
+      ami,
+      user_data,
+    ]
   }
 
-  subnet_id = "${module.vpc.public_subnet_ids[0]}"
+  subnet_id = module.vpc.public_subnet_ids[0]
 
-  tags {
+  tags = {
     Name = "${var.name}-bastion"
   }
 
@@ -61,4 +72,6 @@ unzip ~/terraform.zip
 mv ~/terraform /usr/local/bin/
 terraform version
 END_INIT
+
 }
+

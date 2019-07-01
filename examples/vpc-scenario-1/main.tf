@@ -39,23 +39,24 @@ variable "public_subnet_cidrs" {
 }
 
 provider "aws" {
-  region = "${var.region}"
+  region = var.region
 }
 
-data "aws_availability_zones" "available" {}
+data "aws_availability_zones" "available" {
+}
 
 module "vpc" {
   source      = "../../modules/vpc-scenario-1"
-  name_prefix = "${var.name}"
-  region      = "${var.region}"
-  cidr        = "${var.vpc_cidr}"
-  azs         = ["${slice(data.aws_availability_zones.available.names, 0, 3)}"]
+  name_prefix = var.name
+  region      = var.region
+  cidr        = var.vpc_cidr
+  azs         = slice(data.aws_availability_zones.available.names, 0, 3)
 
   extra_tags = {
     kali = "ma"
   }
 
-  public_subnet_cidrs = ["${var.public_subnet_cidrs}"]
+  public_subnet_cidrs = var.public_subnet_cidrs
 }
 
 module "ubuntu-xenial-ami" {
@@ -64,36 +65,36 @@ module "ubuntu-xenial-ami" {
 }
 
 resource "aws_key_pair" "main" {
-  key_name   = "${var.name}"
-  public_key = "${file(var.ssh_pubkey)}"
+  key_name   = var.name
+  public_key = file(var.ssh_pubkey)
 }
 
 module "web-sg" {
   source      = "../../modules/security-group-base"
   description = "For my-web-app instances in ${var.name}"
   name        = "${var.name}-web"
-  vpc_id      = "${module.vpc.vpc_id}"
+  vpc_id      = module.vpc.vpc_id
 }
 
 # shared security group for SSH
 module "web-public-ssh-rule" {
-  source              = "../../modules/ssh-sg"
-  security_group_id   = "${module.web-sg.id}"
+  source            = "../../modules/ssh-sg"
+  security_group_id = module.web-sg.id
 }
 
 # shared security group, open egress (outbound from nodes)
 module "web-open-egress-rule" {
   source = "../../modules/open-egress-sg"
 
-  security_group_id = "${module.web-sg.id}"
+  security_group_id = module.web-sg.id
 }
 
 resource "aws_instance" "web" {
-  ami               = "${module.ubuntu-xenial-ami.id}"
-  count             = "${length(var.public_subnet_cidrs)}"
-  key_name          = "${aws_key_pair.main.key_name}"
+  ami               = module.ubuntu-xenial-ami.id
+  count             = length(var.public_subnet_cidrs)
+  key_name          = aws_key_pair.main.key_name
   instance_type     = "t2.nano"
-  availability_zone = "${data.aws_availability_zones.available.names[count.index]}"
+  availability_zone = data.aws_availability_zones.available.names[count.index]
 
   root_block_device {
     volume_type = "gp2"
@@ -101,11 +102,19 @@ resource "aws_instance" "web" {
   }
 
   associate_public_ip_address = "true"
-  vpc_security_group_ids      = ["${module.web-sg.id}"]
+  # TF-UPGRADE-TODO: In Terraform v0.10 and earlier, it was sometimes necessary to
+  # force an interpolation expression to be interpreted as a list by wrapping it
+  # in an extra set of list brackets. That form was supported for compatibilty in
+  # v0.11, but is no longer supported in Terraform v0.12.
+  #
+  # If the expression in the following list itself returns a list, remove the
+  # brackets to avoid interpretation as a list of lists. If the expression
+  # returns a single list item then leave it as-is and remove this TODO comment.
+  vpc_security_group_ids = [module.web-sg.id]
 
-  subnet_id = "${element(module.vpc.public_subnet_ids, count.index)}"
+  subnet_id = element(module.vpc.public_subnet_ids, count.index)
 
-  tags {
+  tags = {
     Name = "${var.name}-web-${count.index}"
   }
 
@@ -118,6 +127,7 @@ mv kops /usr/local/bin/
 kops version
 END_INIT
 
+
   provisioner "remote-exec" {
     inline = [
       "echo 'success!'",
@@ -127,9 +137,11 @@ END_INIT
     ]
 
     connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = "${file(var.ssh_key)}"
+      host = coalesce(self.public_ip, self.private_ip)
+      type = "ssh"
+      user = "ubuntu"
+      private_key = file(var.ssh_key)
     }
   }
 }
+

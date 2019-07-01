@@ -14,7 +14,7 @@
  */
 
 # variables used by this snippet of init shellcode
-variable "version" {
+variable "consul_ver" {
   default     = "0.9.3"
   description = "version of consul, to install"
 }
@@ -46,18 +46,19 @@ variable "log_prefix" {
 
 # render init script snippet from the template
 data "template_file" "init_snippet" {
-  template = "${file("${path.module}/snippet.tpl")}"
+  template = file("${path.module}/snippet.tpl")
 
-  vars {
-    version     = "${var.version}"
-    base_url    = "${var.base_url}"
-    data_dir    = "${var.data_dir}"
-    init_prefix = "${var.init_prefix}"
-    init_suffix = "${var.init_suffix}"
-    log_prefix  = "${var.log_prefix}"
+  vars = {
+    consul_ver  = var.consul_ver
+    base_url    = var.base_url
+    data_dir    = var.data_dir
+    init_prefix = var.init_prefix
+    init_suffix = var.init_suffix
+    log_prefix  = var.log_prefix
   }
 }
 
 output "init_snippet" {
-  value = "${data.template_file.init_snippet.rendered}"
+  value = data.template_file.init_snippet.rendered
 }
+

@@ -115,3 +115,8 @@ variable "load_balancers" {
   description = "The list of load balancers names to pass to the ASG module"
   type        = "list"
 }
+
+variable "assign_eip" {
+  default = "false"
+  description = "Whether or not associating an EIP with the node."
+}

@@ -18,6 +18,11 @@ variable "public_subnet_cidrs" {
   description = "A list of public subnet CIDRs to deploy inside the VPC."
 }
 
+variable "map_on_launch" {
+  default     = "true"
+  description = "Map public subnet addresses to instances."
+}
+
 variable "azs" {
   type        = "list"
   description = "A list of Availaiblity Zones in the region"

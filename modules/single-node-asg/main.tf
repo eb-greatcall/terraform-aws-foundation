@@ -11,6 +11,15 @@
  *
  */
 
+# Data source for AWS subnet
+data "aws_subnet" "server-subnet" {
+  id = "${var.subnet_id}"
+}
+
+resource "aws_eip" "eip" {
+  count = "${var.assign_eip == "true" ? 1 : 0}"
+}
+
 module "service-data" {
   source      = "../persistent-ebs"
   name_prefix = "${var.name_prefix}-${var.name_suffix}-data"
@@ -36,7 +45,7 @@ module "server" {
   ami              = "${var.ami}"
   subnet_ids       = ["${var.subnet_id}"]
   azs              = ["${data.aws_subnet.server-subnet.availability_zone}"]
-  public_ip        = "${var.public_ip}"
+  public_ip        = "${var.assign_eip == "true" ? "false" : var.public_ip}"
   key_name         = "${var.key_name}"
   elb_names        = ["${var.load_balancers}"]
   max_nodes        = 1
@@ -49,8 +58,11 @@ module "server" {
 
   user_data = <<END_INIT
 #!/bin/bash
+apt update
+apt install -y awscli
 ${var.init_prefix}
 ${module.init-attach-ebs.init_snippet}
+${var.assign_eip == "true" ? "aws ec2 associate-address --instance-id \"$(ec2metadata --instance-id)\" --allocation-id \"${element(aws_eip.eip.*.id,0)}\"" : ""}
 ${var.init_suffix}
 END_INIT
 }
@@ -62,7 +74,3 @@ module "init-attach-ebs" {
   volume_id = "${module.service-data.volume_id}"
 }
 
-# Data source for AWS subnet
-data "aws_subnet" "server-subnet" {
-  id = "${var.subnet_id}"
-}

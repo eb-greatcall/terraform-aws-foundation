@@ -112,3 +112,8 @@ variable "termination_policies" {
   type        = list(string)
 }
 
+variable "lb_target_group_arns" {
+	default     = []
+	type        = list(string)
+	description = "A list of aws_alb_target_group ARNs, for use with Application or Network Load Balancing."
+}

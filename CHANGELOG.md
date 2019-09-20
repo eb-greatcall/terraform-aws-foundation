@@ -4,7 +4,8 @@
 
 ### Modules
 
-* `iam-instance-profile`: Add role ouput for IAM instance profile module.
+* `iam-instance-profile`: Add role ID ouput for IAM instance profile module.
+* `iam-instance-profile`: Add role output for IAM instance profile module.
 * lifecycle hooks added to `asg` and so `asg-lifecycle` was removed
 
 ### Examples

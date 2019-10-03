@@ -7,6 +7,7 @@
 * `setup-meta-infrastructure`: add "iam:Get{User,Role,Policy}" permissions for power-users
 * `iam-instance-profile`: Add role ouput for IAM instance profile module.
 * lifecycle hooks added to `asg` and so `asg-lifecycle` was removed
+* `setup-meta-infrastructure`: Parameterize password length and age for iam password policy.
 
 ### Examples
 

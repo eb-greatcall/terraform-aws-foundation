@@ -19,6 +19,17 @@
 
 * `ad-ec2`: Demonstrate how an Windows EC2 instance seamlessly joins an Active directory when it gets newly spawned.
 
+
+# v0.9.6
+
+### Summary
+
+* New module for associating existing AWS credentials with a Terraform Cloud workspace.
+
+### Modules
+
+* `tf-cloud-credentials`: Adds module
+
 # v0.9.3
 
 ### Summary
